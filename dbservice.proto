@@ -1,0 +1,77 @@
+syntax = "proto3";
+
+package dbservice;
+
+import "google/protobuf/empty.proto";
+
+// Optional in Proto3 is handled by its presence/absence (unless using oneof).
+
+// structures
+enum State {
+    PENDING1 = 0;
+    PENDING2 = 1;
+    SUCCESS = 2;
+    FAILED = 3;
+}
+enum QueueStatus {
+    PROCESSING = 0;
+    EMPTY = 1;
+    READY = 2;
+}
+message Item {
+    bytes input = 1;
+    bytes output = 2; 
+}
+message EmptyData {}
+
+// Add
+message AddRequest {
+    bytes img_bytes = 1;
+}
+message AddResponse {
+    string id = 1;
+}
+
+// Pull
+message ReadyData {
+    string id = 1;
+    Item item = 2;
+}
+message PullResponse {
+    QueueStatus status = 1;
+    oneof data {
+        string id = 2;
+        EmptyData empty = 3;
+        ReadyData ready = 4;
+    }
+}
+
+// Finalize
+message FinalizeRequest {
+    bool error = 1;       
+    bytes img_bytes = 2;
+}
+
+// Check
+message CheckRequest {
+    string id = 1;
+}
+message CheckResponseExist {
+    State state = 1;
+    Item item = 2;
+    int32 position = 3;
+}
+message CheckResponse {
+    oneof data {
+        EmptyData empty = 1;
+        CheckResponseExist exist = 2;
+    }
+}
+
+// service
+service DBService {
+    rpc Add(AddRequest) returns (AddResponse);
+    rpc Pull(EmptyData) returns (PullResponse);
+    rpc Finalize(FinalizeRequest) returns (google.protobuf.Empty);
+    rpc Check(CheckRequest) returns (CheckResponse);
+}

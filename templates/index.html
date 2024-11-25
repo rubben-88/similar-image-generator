@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Distributed Systems Lab 3</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-5">
+        <h1 class="text-center mb-4">Distributed Systems Lab 3</h1>
+
+        <!-- Image section -->
+        <div class="mb-4">
+            <div class="mb-3">
+                <label for="image" class="form-label">Choose an Image:</label>
+                <input type="file" name="image" accept="image/*" required id="image" class="form-control">
+            </div>
+            
+            <div class="image-preview mb-3 d-flex justify-content-center" id="image-preview" style="display: none;">
+                <img id="preview" src="" class="img-fluid rounded">
+            </div>
+
+            <button type="submit" id="upload-button" class="btn btn-primary w-100">Upload</button>
+        </div>
+
+        <!-- Image result -->
+        <div class="row">
+            <div class="col-auto">
+                <p class="fw-normal">Generated ticket id:</p>
+            </div>
+            <div class="col-auto">
+                <p id="image-result" class="fw-bold">...</p>
+            </div>
+        </div>
+
+        <!-- Query section -->
+        <div class="mb-4">
+            <div class="mb-3">
+                <label for="id" class="form-label">Enter a ticket id for querying:</label>
+                <input type="text" id="id" accept="image/*" class="form-control" placeholder="Enter id">
+            </div>
+
+            <button type="submit" id="query-button" class="btn btn-primary w-100">Query</button>
+        </div>
+
+        <!-- Query result -->
+        <div class="row">
+            <div class="col-auto">
+                <p class="fw-normal">State:</p>
+            </div>
+            <div class="col-auto">
+                <p id="query-result">...</p>
+            </div>
+        </div>
+
+        <div id="ai-image" class="mb-3 d-flex justify-content-center"></div>
+
+        <!-- Bottom space -->
+        <div id="bottom-space" style="height: 50px;"></div>
+
+    </div>
+
+    <!-- Bootstrap JS and dependencies -->
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.min.js"></script>
+
+    <script>
+        // image preview
+        document.getElementById("image").addEventListener("change", function(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const preview = document.getElementById("preview");
+                    preview.src = e.target.result;
+                    document.getElementById("image-preview").style.display = "block";
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // upload execution
+        document.getElementById("upload-button").addEventListener("click", function() {
+            const imageInput = document.getElementById("image");
+            const file = imageInput.files[0];
+
+            if (file) {
+                const formData = new FormData();
+                formData.append("file", file);
+                fetch('/upload', { method: 'POST', body: formData })
+                    .then(response => response.json())
+                    .then(data => document.getElementById("image-result").innerText = data.id)
+                    .catch(error => console.error('Error:', error));
+            } else {
+                alert("Please select an image before uploading.");
+            }
+        });
+
+        // query execution
+        document.getElementById("query-button").addEventListener("click", function() {
+            const id = document.getElementById("id").value;
+            if (id) {
+
+                // status loading
+                document.getElementById("query-result").innerText = `loading...`
+
+                // empty image
+                document.getElementById("ai-image").innerHTML = '';
+
+                const formData = new FormData();
+                formData.append("id", id);
+                fetch(`/query?id=${formData.get('id')}`, { method: 'GET' })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === "success") {
+                                // set status
+                                document.getElementById("query-result").innerText = `${data.state}`
+
+                                // insert image
+                                if (data.state === 'success') {
+                                    const imgElement = document.createElement("img");
+                                    imgElement.src = `data:image/jpeg;base64,${data.response}`;
+                                    imgElement.className = "img-fluid rounded"
+                                    document.getElementById("ai-image").appendChild(imgElement);
+                                }
+                            } else {
+                                console.error("No image found");
+                            }
+                        })
+                    .catch(error => console.error('Error:', error));
+            } else {
+                alert("Please enter an id before querying.");
+            }
+        });
+    </script>
+</body>
+</html>
